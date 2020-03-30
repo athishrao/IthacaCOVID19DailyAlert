@@ -21,7 +21,7 @@ def retreive_subscribers():
     with open(CWD + SUBSCRIBER_FILE, "r") as f:
         for line in f.readlines():
             subscribers.append(line.strip())
-    return subscribers[:1]
+    return subscribers
 
 
 def get_body(when, totalTest, posCases, negCases, deaths):
@@ -56,7 +56,6 @@ def generate_hash(text):
     :return:        SHA224 value of the text
     """
     return str(hashlib.sha224(text.encode("utf-8")).hexdigest())
-
 
 # ----- HTML PARSING UTILS
 def parse_url(url):
@@ -117,7 +116,8 @@ def dispatch_mails(username, password, receivers, body):
     session.login(username, password)
     text = message.as_string()
     # TODO: NEED ERROR CHECKING HERE (EMAIL SEND FAILED)
-    session.sendmail(username, receivers, text)
+    print(receivers)
+    session.sendmail(username, receivers.split(","), text)
     session.quit()
 
 
