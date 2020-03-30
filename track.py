@@ -17,10 +17,11 @@ def retreive_subscribers():
     :return:    Emails of current subscribers
     """
     subscribers = []
+    SUBSCRIBER_FILE = "recv.txt"
     with open(CWD + SUBSCRIBER_FILE, "r") as f:
         for line in f.readlines():
             subscribers.append(line.strip())
-    return subscribers
+    return subscribers[:1]
 
 
 def get_body(when, totalTest, posCases, negCases, deaths):
@@ -35,7 +36,7 @@ def get_body(when, totalTest, posCases, negCases, deaths):
 
     :return:            Formatted message string
     """
-    return f"In Ithaca, as of {when} \nTotal Tested for COVID-19: {totalTest} Positive Test Results count: {posCases}\nNegative results count: {negCases}\nDeath toll: {deaths}\n\nTake care.\n\n{MSG_FOOTER}"
+    return f"In Ithaca, as of {when} \nTotal Tested for COVID-19: {totalTest} \nPositive Test Results count: {posCases}\nNegative results count: {negCases}\nDeath toll: {deaths}\n\nTake care.\n\n{MSG_FOOTER}"
 
 
 def get_creds():
@@ -108,15 +109,15 @@ def dispatch_mails(username, password, receivers, body):
     message = MIMEMultipart()
     message["From"] = username
     message["To"] = receivers
-    message["Subject"] = "Ithaca Corona Update " + when
+    message["Subject"] = "Ithaca Corona Update "
     message.attach(MIMEText(body, "plain"))
     session = smtplib.SMTP("smtp.gmail.com", 587)
     session.starttls()
     # TODO: NEED ERROR CHECKING HERE (LOGIN FAILED)
-    session.login(Username, password)
+    session.login(username, password)
     text = message.as_string()
     # TODO: NEED ERROR CHECKING HERE (EMAIL SEND FAILED)
-    session.sendmail(Username, receivers, text)
+    session.sendmail(username, receivers, text)
     session.quit()
 
 
@@ -131,7 +132,6 @@ if __name__ == "__main__":
     subscribers = retreive_subscribers()
     parsed_data = parse_url(URL)
     username, password = get_creds()
-
     hash = generate_hash(
         parsed_data["when"]
         + parsed_data["totalTest"]
