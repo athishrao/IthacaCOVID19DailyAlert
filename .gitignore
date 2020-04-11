@@ -1,5 +1,7 @@
 creds.txt
 recv.txt
+user.txt
 .DS_Store
 file.txt
+.*
 __pycache__/*

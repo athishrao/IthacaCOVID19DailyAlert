@@ -4,6 +4,7 @@ import hashlib
 import requests
 import smtplib, ssl
 from constants import *
+from datetime import date
 from bs4 import BeautifulSoup
 from urllib.request import urlopen
 from email.mime.text import MIMEText
@@ -24,7 +25,7 @@ def retreive_subscribers():
     return subscribers
 
 
-def get_body(when, totalTest, posCases, negCases, deaths):
+def get_body(when, totalTest, posCases, negCases, pending, recovered, currentlyHospitalized, dischargedToday, TCResidentDeaths, nonResidentDeaths):
     """
     Create Body of the mail
 
@@ -36,7 +37,7 @@ def get_body(when, totalTest, posCases, negCases, deaths):
 
     :return:            Formatted message string
     """
-    return f"In Ithaca, as of {when} \nTotal Tested for COVID-19: {totalTest} \nPositive Test Results count: {posCases}\nNegative results count: {negCases}\nDeath toll: {deaths}\n\nTake care.\n\n{MSG_FOOTER}"
+    return f"In Ithaca, as of {when},\n\nTotal Tested for COVID-19: {totalTest} \nPending Tests: {pending} \nPositive Test Results count: {posCases} \nRecovered Cases: {recovered} \nNegative results count: {negCases}\nCurrently Hospitalized: {currentlyHospitalized}\nDischarged Today: {dischargedToday}\nTC Resident Deaths: {TCResidentDeaths}\nNon-Resident Deaths: {nonResidentDeaths}\n\nTake care.\n\n{MSG_FOOTER}"
 
 
 def get_creds():
@@ -68,7 +69,7 @@ def parse_url(url):
     response = requests.get(url)
     soup = BeautifulSoup(response.text, "lxml")
     temp = []
-    table = soup.find_all("table")[0]
+    table = soup.find_all("table")
     return parse_table(table)
 
 
@@ -83,14 +84,25 @@ def parse_table(table):
     cols = 0
     rows = 0
     column_names = []
-    data = table.find_all("tr")
-    details["when"] = str(table.find_all("em")).split(".")[0][11:]
-    data = str(data).split('<td class="ctr">')
-    data = data[4].split()
-    details["totalTest"] = data[3].split("</td>")[0]
-    details["posCases"] = data[6].split("</td>")[0]
-    details["negCases"] = data[9].split("</td>")[0]
-    details["deaths"] = data[12].split("</td>")[0]
+    data = []
+    data1 = (table[0].find_all("tr"))
+    data2 = (table[1].find_all("tr"))
+    # details["when"] = str(table.find_all('em style="font-size:90%;"')).split(".")[0][11:]
+    today = date.today()
+    d1 = today.strftime("%d/%m/%Y")
+    details["when"] = d1
+    data1 = str(data1).split('<td class="ctr">')
+    data1 = data1[5].split("</td>")
+    data2 = str(data2).split('</td>')
+    details["totalTest"] = data1[1].split("\t")[-1]
+    details["pending"] = data1[2].split("\t")[-1]
+    details["posCases"] = data1[3].split("\t")[-1]
+    details["negCases"] = data1[4].split("\t")[-1]
+    details["recovered"] = data1[5].split("\t")[-1]
+    details["Currently Hospitalized"] = data2[4].split("\t")[-1]
+    details["Discharged Today"] =  data2[5].split("\t")[-1]
+    details["TC Resident Deaths"] = data2[6].split("\t")[-1]
+    details["Non-Resident Deaths"] = data2[7].split("\t")[-1]
     return details
 
 
@@ -108,6 +120,7 @@ def dispatch_mails(username, password, receivers, body):
     message = MIMEMultipart()
     message["From"] = username
     message["To"] = receivers
+    # message["Bcc"] = receivers
     message["Subject"] = "Ithaca Corona Update "
     message.attach(MIMEText(body, "plain"))
     session = smtplib.SMTP("smtp.gmail.com", 587)
@@ -137,7 +150,12 @@ if __name__ == "__main__":
         + parsed_data["totalTest"]
         + parsed_data["posCases"]
         + parsed_data["negCases"]
-        + parsed_data["deaths"]
+        + parsed_data["pending"]
+        + parsed_data["recovered"]
+        + parsed_data["Currently Hospitalized"]
+        + parsed_data["Discharged Today"]
+        + parsed_data["TC Resident Deaths"]
+        + parsed_data["Non-Resident Deaths"]
     )
     if hash == oldHash:
         message = "No Updates!"
@@ -147,7 +165,12 @@ if __name__ == "__main__":
             parsed_data["totalTest"],
             parsed_data["posCases"],
             parsed_data["negCases"],
-            parsed_data["deaths"],
+            parsed_data["pending"],
+            parsed_data["recovered"],
+            parsed_data["Currently Hospitalized"],
+            parsed_data["Discharged Today"],
+            parsed_data["TC Resident Deaths"],
+            parsed_data["Non-Resident Deaths"]
         )
         dispatch_mails(username, password, subscribers, body)
         message = "Mail Sent!"
